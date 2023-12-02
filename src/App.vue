@@ -1,11 +1,15 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-    <!--    <div class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">-->
-    <!--      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">-->
-    <!--        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
-    <!--        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
-    <!--      </svg>-->
-    <!--    </div>-->
+    <div
+        v-if="loader === true"
+        class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">
+      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+           viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
     <div class="container">
       <section>
         <div class="flex">
@@ -17,6 +21,7 @@
               <input
                   v-model="ticker"
                   @keydown.enter="add"
+                  @input="findSimilarCryptoCurrency(ticker)"
                   type="text"
                   name="wallet"
                   id="wallet"
@@ -24,25 +29,19 @@
                   placeholder="Например DOGE"
               />
             </div>
-            <div class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
+            <div class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap "
+            >
             <span
+                v-for="currency in listSimilarCryptoCurrencies"
+                v-on:click="chooseCurrency(currency)"
+                :key="currency"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-              BTC
-            </span>
-              <span
-                  class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-              DOGE
-            </span>
-              <span
-                  class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-              BCH
-            </span>
-              <span
-                  class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-              CHD
+              {{ currency }}
             </span>
             </div>
-            <div class="text-sm text-red-600">Такой тикер уже добавлен</div>
+            <div class="text-sm text-red-600"  v-if="isAddedTicker">
+              Такой тикер уже добавлен
+            </div>
           </div>
         </div>
         <button
@@ -166,26 +165,43 @@ export default {
       ticker: '',
       tickers: [],
       sel: null,
-      graph: []
+      graph: [],
+      listCryptoCurrency: {},
+      listSimilarCryptoCurrencies: [],
+      isAddedTicker: false,
+      loader: true
     }
   },
   methods: {
+    subscribeToUpdates(tickerName) {
+      setInterval(async () => {
+        const res = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD,JPY,EUR`)
+        const data = await res.json()
+        this.tickers.find(t => t.name === tickerName).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
+        // clearInterval(intervalId)
+        if (this.sel?.name === tickerName) {
+          this.graph.push(data.USD)
+        }
+      }, 3000)
+    },
     add() {
       const currentTicker = {
         name: this.ticker,
         price: "-"
       }
+      if (this.tickers.find(t => t.name === currentTicker.name)) {
+        return this.isAddedTicker = true
+      }
       this.tickers.push(currentTicker)
-      setInterval(async () => {
-        const res = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD,JPY,EUR`)
-        const data = await res.json()
-        this.tickers.find(t => t.name === currentTicker.name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
-        // clearInterval(intervalId)
-        if (this.sel?.name === currentTicker.name) {
-          this.graph.push(data.USD)
-        }
-      }, 3000)
+      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
+
+      this.subscribeToUpdates(currentTicker.name)
+
       this.ticker = ''
+      this.listSimilarCryptoCurrencies = []
+    },
+    chooseCurrency(currency) {
+      this.ticker = currency
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove)
@@ -193,12 +209,38 @@ export default {
     normalizeGraph() {
       const maxValue = Math.max(...this.graph)
       const minValue = Math.min(...this.graph)
-      return this.graph.map(p => 5 + ((p - minValue)*95)/(maxValue - minValue))
+      return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
     },
     select(t) {
       this.sel = t
       this.graph = []
+    },
+    findSimilarCryptoCurrency(ticker) {
+      this.isAddedTicker = false
+      const currencies = Object.keys(this.listCryptoCurrency);
+
+      // Фильтруем валюты по префиксу символов
+      const filteredCurrencies = currencies.filter(currency => currency.startsWith(ticker));
+
+      // Получаем первые count валют из отфильтрованного списка
+      const result = filteredCurrencies.slice(0, 4);
+
+      this.listSimilarCryptoCurrencies = result
     }
+  },
+  created: async function () {
+    const tickersData = localStorage.getItem('crypto-list')
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData)
+      this.tickers.forEach(t => {
+        this.subscribeToUpdates(t.name)
+      })
+    }
+
+    const res = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
+    const data = await res.json()
+    this.listCryptoCurrency = data.Data
+    this.loader = false
   }
 }
 
