@@ -50,6 +50,7 @@
         </div>
         <button
             v-on:click="add"
+            :disabled="disabledButton"
             type="button"
             class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
@@ -83,24 +84,26 @@
                 v-if="page > 1"
                 @click="page = page - 1"
                 class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >Назад
+            >
+              <img src="./assets/images/arrow-left.png" alt="arrow to left" class="w-3 h-3">
             </button>
             <button
                 v-if="hasNextPage"
                 @click="page = page + 1"
                 class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >Вперед
+            >
+              <img src="./assets/images/arrow-right.png" alt="arrow to right" class="w-3 h-3">
             </button>
 
         </div>
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="t in filteredTickers()"
+              v-for="t in paginatedTickers"
               :key="t.name"
               @click="select(t)"
               :class="{
-                'border-2': sel === t
+                'border-2': selectedTicker === t
               }"
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800  border-solid cursor-pointer"
           >
@@ -138,22 +141,22 @@
       </template>
 
       <section
-          v-if="sel"
+          v-if="selectedTicker"
           class="relative"
       >
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ sel.name }} - USD
+          {{ selectedTicker.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
-              v-for="(bar, idx) in normalizeGraph()"
+              v-for="(bar, idx) in normalizedGraph"
               :key="idx"
               :style="{height: `${bar}%`}"
               class="bg-purple-800 border w-10"
           ></div>
         </div>
         <button
-            @click="sel = null"
+            @click="selectedTicker = null"
             type="button"
             class="absolute top-0 right-0"
         >
@@ -189,17 +192,54 @@ export default {
   data() {
     return {
       ticker: '',
+      filter: '',
+
       tickers: [],
-      sel: null,
+      selectedTicker: null,
+
       graph: [],
       page: 1,
-      filter: '',
-      hasNextPage: true,
+      // hasNextPage: true,
       listCryptoCurrency: {},
       listSimilarCryptoCurrencies: [],
       isAddedTicker: false,
       loader: true,
-      intervalsId: [],
+      intervalIds: [],
+    }
+  },
+  computed: {
+    startIndex() {
+      return (this.page - 1) * 6
+    },
+    endIndex() {
+      return this.page * 6
+    },
+    filteredTickers() {
+      return this.tickers.filter(t => t.name.includes(this.filter))
+    },
+    paginatedTickers() {
+      return this.filteredTickers.slice(this.startIndex, this.endIndex)
+    },
+    hasNextPage() {
+      return this.filteredTickers.length > this.endIndex
+    },
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph)
+      const minValue = Math.min(...this.graph)
+
+      if (maxValue === minValue) {
+        return this.graph.map(() => 50)
+      }
+      return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
+    },
+    disabledButton() {
+      return this.ticker === ''
+    },
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page
+      }
     }
   },
   methods: {
@@ -212,11 +252,11 @@ export default {
           desiredTicker.price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
         }
 
-        if (this.sel?.name === tickerName) {
+        if (this.selectedTicker?.name === tickerName) {
           this.graph.push(data.USD)
         }
       }, 3000)
-      this.intervalsId.push({
+      this.intervalIds.push({
         tickerName,
         intervalId,
       })
@@ -229,9 +269,7 @@ export default {
       if (this.tickers.find(t => t.name === currentTicker.name)) {
         return this.isAddedTicker = true
       }
-      this.tickers.push(currentTicker)
-      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
-
+      this.tickers = [...this.tickers, currentTicker]
       this.subscribeToUpdates(currentTicker.name)
 
       this.ticker = ''
@@ -239,51 +277,46 @@ export default {
       this.listSimilarCryptoCurrencies = []
 
     },
-    filteredTickers() {
-      const start = (this.page - 1) * 6
-      const end = this.page * 6
-      const filteredTickers = this.tickers.filter(t => t.name.includes(this.filter))
-
-      this.hasNextPage = filteredTickers.length > end
-
-      return filteredTickers.slice(start, end)
-    },
     chooseCurrency(currency) {
       this.ticker = currency
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove)
-      this.intervalsId = this.intervalsId.filter(i => i.tickerName !== tickerToRemove)
+      this.intervalIds = this.intervalIds.filter(i => i.tickerName !== tickerToRemove)
       localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
     },
-    normalizeGraph() {
-      const maxValue = Math.max(...this.graph)
-      const minValue = Math.min(...this.graph)
-      return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
-    },
     select(t) {
-      this.sel = t
-      this.graph = []
+      this.selectedTicker = t
     },
     findSimilarCryptoCurrency(ticker) {
       this.isAddedTicker = false
       const currencies = Object.keys(this.listCryptoCurrency);
 
       // Фильтруем валюты по префиксу символов
-      const filteredCurrencies = currencies.filter(currency => currency.startsWith(ticker));
+      const filteredCurrencies = currencies.filter(currency => currency.includes(ticker));
 
       // Получаем первые count валют из отфильтрованного списка
       this.listSimilarCryptoCurrencies = filteredCurrencies.slice(0, 4)
     }
   },
   watch: {
+    selectedTicker() {
+      this.graph = []
+    },
+    paginatedTickers() {
+      if (this.paginatedTickers.length === 0 && this.page > 1) {
+        this.page -= 1
+      }
+    },
     filter() {
       this.page = 1
-      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`)
     },
-    page() {
-      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`)
-    }
+    pageStateOptions(v) {
+      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${v.filter}&page=${v.page}`)
+    },
+    tickers() {
+      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
+    },
   },
   created: async function () {
     const windowData = Object.fromEntries(new URL(window.location).searchParams.entries())
@@ -293,7 +326,7 @@ export default {
     }
 
     if (windowData.page) {
-      this.page = windowData.page
+      this.page = Number(windowData.page)
     }
 
     const tickersData = localStorage.getItem('crypto-list')
