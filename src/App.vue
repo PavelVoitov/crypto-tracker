@@ -32,7 +32,7 @@
             <div class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap "
             >
             <span
-                v-for="currency in listSimilarCryptoCurrencies"
+                v-for="currency in listSimilarTickers"
                 v-on:click="chooseCurrency(currency)"
                 :key="currency"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
@@ -80,20 +80,20 @@
 
               class="border-x-0 border-t-0 focus:outline-none"
           />
-            <button
-                v-if="page > 1"
-                @click="page = page - 1"
-                class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              <img src="./assets/images/arrow-left.png" alt="arrow to left" class="w-3 h-3">
-            </button>
-            <button
-                v-if="hasNextPage"
-                @click="page = page + 1"
-                class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              <img src="./assets/images/arrow-right.png" alt="arrow to right" class="w-3 h-3">
-            </button>
+          <button
+              v-if="page > 1"
+              @click="page = page - 1"
+              class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            <img src="./assets/images/arrow-left.png" alt="arrow to left" class="w-3 h-3">
+          </button>
+          <button
+              v-if="hasNextPage"
+              @click="page = page + 1"
+              class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            <img src="./assets/images/arrow-right.png" alt="arrow to right" class="w-3 h-3">
+          </button>
 
         </div>
         <hr class="w-full border-t border-gray-600 my-4"/>
@@ -112,7 +112,7 @@
                 {{ t.name }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ t.price }}
+                {{ formatPrice(t.price) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
@@ -186,6 +186,7 @@
 </template>
 
 <script>
+import {subscribeToTicker, unsubscribeToTicker} from "@/api";
 
 export default {
   name: 'App',
@@ -201,10 +202,10 @@ export default {
       page: 1,
       // hasNextPage: true,
       listCryptoCurrency: {},
-      listSimilarCryptoCurrencies: [],
+      listSimilarTickers: [],
       isAddedTicker: false,
       loader: true,
-      intervalIds: [],
+      // intervalIds: [],
     }
   },
   computed: {
@@ -243,23 +244,26 @@ export default {
     }
   },
   methods: {
-    subscribeToUpdates(tickerName) {
-      const intervalId = setInterval(async () => {
-        const res = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD,JPY,EUR`)
-        const data = await res.json()
-        const desiredTicker = this.tickers.find(t => t.name === tickerName)
-        if (desiredTicker) {
-          desiredTicker.price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2)
-        }
-
-        if (this.selectedTicker?.name === tickerName) {
-          this.graph.push(data.USD)
-        }
-      }, 3000)
-      this.intervalIds.push({
-        tickerName,
-        intervalId,
-      })
+    updateTicker(tickerName, price) {
+      this.tickers
+          .filter(t => t.name === tickerName)
+          .forEach(t => t.price = price)
+    },
+    formatPrice(price) {
+      if (price === '-') {
+        return price
+      }
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2)
+    },
+    async updatesTickers() {
+      // if (!this.tickers.length) {
+      //   return
+      // }
+      // const exchangeData = await loadTickers(this.tickers.map(t => t.name))
+      // this.tickers.forEach(ticker => {
+      //   const price = exchangeData[ticker.name.toUpperCase()]
+      //   ticker.price = price ?? '-'
+      // })
     },
     add() {
       const currentTicker = {
@@ -270,11 +274,15 @@ export default {
         return this.isAddedTicker = true
       }
       this.tickers = [...this.tickers, currentTicker]
-      this.subscribeToUpdates(currentTicker.name)
+      subscribeToTicker(currentTicker.name, (newPrice) => {
+        this.updateTicker(currentTicker.name, newPrice)
+      })
 
       this.ticker = ''
       this.filter = ''
-      this.listSimilarCryptoCurrencies = []
+      this.listSimilarTickers = []
+      this.isAddedTicker = false
+
 
     },
     chooseCurrency(currency) {
@@ -282,8 +290,11 @@ export default {
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove)
-      this.intervalIds = this.intervalIds.filter(i => i.tickerName !== tickerToRemove)
       localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
+      if (this.selectedTicker === tickerToRemove) {
+        this.selectedTicker = null
+      }
+      unsubscribeToTicker(tickerToRemove.name)
     },
     select(t) {
       this.selectedTicker = t
@@ -296,7 +307,7 @@ export default {
       const filteredCurrencies = currencies.filter(currency => currency.includes(ticker));
 
       // Получаем первые count валют из отфильтрованного списка
-      this.listSimilarCryptoCurrencies = filteredCurrencies.slice(0, 4)
+      this.listSimilarTickers = filteredCurrencies.slice(0, 4)
     }
   },
   watch: {
@@ -332,10 +343,11 @@ export default {
     const tickersData = localStorage.getItem('crypto-list')
     if (tickersData) {
       this.tickers = JSON.parse(tickersData)
-      this.tickers.forEach(t => {
-        this.subscribeToUpdates(t.name)
-      })
+      this.tickers.forEach(t =>
+          subscribeToTicker(t.name, (newPrice) =>
+          this.updateTicker(t.name, newPrice)))
     }
+    setInterval(this.updatesTickers, 5000)
 
     const res = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
     const data = await res.json()
