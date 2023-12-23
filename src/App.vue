@@ -39,6 +39,10 @@
               {{ currency }}
             </span>
             </div>
+            <div v-if="!isCurrentTicker"
+                 class="text-sm text-red-600">
+              Введенный тикер отсутсвует в базе данных
+            </div>
 
             <div
                 v-if="isAddedTicker"
@@ -108,7 +112,11 @@
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800  border-solid cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
-              <dt class="text-sm font-medium text-gray-500 truncate">
+              <dt
+                  :class="{
+                    'text-red-300': t.costStatus === 'empty'
+                  }"
+                  class="text-sm font-medium text-gray-500 truncate">
                 {{ t.name }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
@@ -186,7 +194,7 @@
 </template>
 
 <script>
-import {subscribeToTicker, unsubscribeToTicker} from "@/api";
+import {sendMessage, subscribeToTicker} from "@/api";
 
 export default {
   name: 'App',
@@ -204,6 +212,7 @@ export default {
       listCryptoCurrency: {},
       listSimilarTickers: [],
       isAddedTicker: false,
+      isCurrentTicker: true,
       loader: true,
       // intervalIds: [],
     }
@@ -234,36 +243,42 @@ export default {
       return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
     },
     disabledButton() {
-      return this.ticker === ''
+      return this.ticker === '' || !this.isCurrentTicker
     },
-    pageStateOptions() {
-      return {
-        filter: this.filter,
-        page: this.page
-      }
+    hasCurrentTicker() {
+      return this.listSimilarTickers.includes(this.ticker.name)
     }
+
+    // pageStateOptions() {
+    //   return {
+    //     filter: this.filter,
+    //     page: this.page
+    //   }
+    // }
   },
   methods: {
     updateTicker(tickerName, price) {
       this.tickers
           .filter(t => t.name === tickerName)
-          .forEach(t => t.price = price)
+          .forEach(t => {
+            if (t === this.selectedTicker) {
+              this.graph.push(price)
+            }
+            if (price === null) {
+              t.price = '-'
+              t.costStatus = 'empty'
+            } else {
+              t.costStatus = 'full'
+              t.price = price
+            }
+          })
+      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
     },
     formatPrice(price) {
       if (price === '-') {
         return price
       }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2)
-    },
-    async updatesTickers() {
-      // if (!this.tickers.length) {
-      //   return
-      // }
-      // const exchangeData = await loadTickers(this.tickers.map(t => t.name))
-      // this.tickers.forEach(ticker => {
-      //   const price = exchangeData[ticker.name.toUpperCase()]
-      //   ticker.price = price ?? '-'
-      // })
     },
     add() {
       const currentTicker = {
@@ -273,7 +288,14 @@ export default {
       if (this.tickers.find(t => t.name === currentTicker.name)) {
         return this.isAddedTicker = true
       }
+      if (!this.listSimilarTickers.includes(currentTicker.name)) {
+        return this.isCurrentTicker = false
+      }
       this.tickers = [...this.tickers, currentTicker]
+
+      // worker.port.postMessage({type: 'subscribe', ticker: currentTicker.name, callback: (newPrice) => {
+      //     this.updateTicker(currentTicker.name, newPrice)
+      //   }})
       subscribeToTicker(currentTicker.name, (newPrice) => {
         this.updateTicker(currentTicker.name, newPrice)
       })
@@ -288,18 +310,22 @@ export default {
     chooseCurrency(currency) {
       this.ticker = currency
     },
-    handleDelete(tickerToRemove) {
-      this.tickers = this.tickers.filter(t => t !== tickerToRemove)
-      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
-      if (this.selectedTicker === tickerToRemove) {
-        this.selectedTicker = null
-      }
-      unsubscribeToTicker(tickerToRemove.name)
+    async handleDelete(tickerToRemove) {
+      // this.tickers = this.tickers.filter(t => t !== tickerToRemove)
+      // localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
+      // if (this.selectedTicker === tickerToRemove) {
+      //   this.selectedTicker = null
+      // }
+      // const obj = JSON.stringify({type: 'unsubscribe', ticker: tickerToRemove.name})
+      // eslint-disable-next-line no-debugger
+      sendMessage(tickerToRemove.name)
+      // unsubscribeFromTicker(tickerToRemove.name)
     },
     select(t) {
       this.selectedTicker = t
     },
     findSimilarCryptoCurrency(ticker) {
+      this.isCurrentTicker = true
       this.isAddedTicker = false
       const currencies = Object.keys(this.listCryptoCurrency);
 
@@ -341,19 +367,43 @@ export default {
     }
 
     const tickersData = localStorage.getItem('crypto-list')
+
+
     if (tickersData) {
       this.tickers = JSON.parse(tickersData)
-      this.tickers.forEach(t =>
-          subscribeToTicker(t.name, (newPrice) =>
-          this.updateTicker(t.name, newPrice)))
+      this.tickers.forEach(t => {
+            // worker.port.postMessage({type: 'subscribe', ticker: t.name, callback: (newPrice) => {
+            //     this.updateTicker(t.name, newPrice)
+            //   }})
+
+          subscribeToTicker(t.name, (newPrice) => {
+            this.updateTicker(t.name, newPrice)
+          })
+      }
+    )
     }
-    setInterval(this.updatesTickers, 5000)
 
     const res = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
     const data = await res.json()
     this.listCryptoCurrency = data.Data
     this.loader = false
-  }
+  },
+  mounted() {
+    const worker = new SharedWorker('/worker.js');
+    const workerPort = worker.port;
+
+    workerPort.start();
+
+    workerPort.onmessage = (event) => {
+      const receivedData = event.data;
+      this.message = receivedData;
+    };
+
+    // Example: Sending a message to the SharedWorker
+    setTimeout(() => {
+      workerPort.postMessage({id: '14'});
+    }, 2000);
+  },
 }
 
 </script>
