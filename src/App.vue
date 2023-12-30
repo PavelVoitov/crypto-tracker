@@ -194,7 +194,7 @@
 </template>
 
 <script>
-import {sendMessage, subscribeToTicker} from "@/api";
+import {unsubscribeFromTicker, subscribeToTicker} from "@/api";
 
 export default {
   name: 'App',
@@ -280,7 +280,7 @@ export default {
       }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
-    add() {
+    async add() {
       const currentTicker = {
         name: this.ticker,
         price: "-"
@@ -292,10 +292,6 @@ export default {
         return this.isCurrentTicker = false
       }
       this.tickers = [...this.tickers, currentTicker]
-
-      // worker.port.postMessage({type: 'subscribe', ticker: currentTicker.name, callback: (newPrice) => {
-      //     this.updateTicker(currentTicker.name, newPrice)
-      //   }})
       subscribeToTicker(currentTicker.name, (newPrice) => {
         this.updateTicker(currentTicker.name, newPrice)
       })
@@ -310,16 +306,13 @@ export default {
     chooseCurrency(currency) {
       this.ticker = currency
     },
-    async handleDelete(tickerToRemove) {
-      // this.tickers = this.tickers.filter(t => t !== tickerToRemove)
-      // localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
-      // if (this.selectedTicker === tickerToRemove) {
-      //   this.selectedTicker = null
-      // }
-      // const obj = JSON.stringify({type: 'unsubscribe', ticker: tickerToRemove.name})
-      // eslint-disable-next-line no-debugger
-      sendMessage(tickerToRemove.name)
-      // unsubscribeFromTicker(tickerToRemove.name)
+    handleDelete(tickerToRemove) {
+      this.tickers = this.tickers.filter(t => t !== tickerToRemove)
+      localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
+      if (this.selectedTicker === tickerToRemove) {
+        this.selectedTicker = null
+      }
+      unsubscribeFromTicker(tickerToRemove.name)
     },
     select(t) {
       this.selectedTicker = t
@@ -372,38 +365,18 @@ export default {
     if (tickersData) {
       this.tickers = JSON.parse(tickersData)
       this.tickers.forEach(t => {
-            // worker.port.postMessage({type: 'subscribe', ticker: t.name, callback: (newPrice) => {
-            //     this.updateTicker(t.name, newPrice)
-            //   }})
-
-          subscribeToTicker(t.name, (newPrice) => {
-            this.updateTicker(t.name, newPrice)
-          })
-      }
-    )
+            subscribeToTicker(t.name, (newPrice) => {
+              this.updateTicker(t.name, newPrice)
+            })
+          }
+      )
     }
 
     const res = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
     const data = await res.json()
     this.listCryptoCurrency = data.Data
     this.loader = false
-  },
-  mounted() {
-    const worker = new SharedWorker('/worker.js');
-    const workerPort = worker.port;
-
-    workerPort.start();
-
-    workerPort.onmessage = (event) => {
-      const receivedData = event.data;
-      this.message = receivedData;
-    };
-
-    // Example: Sending a message to the SharedWorker
-    setTimeout(() => {
-      workerPort.postMessage({id: '14'});
-    }, 2000);
-  },
+  }
 }
 
 </script>
