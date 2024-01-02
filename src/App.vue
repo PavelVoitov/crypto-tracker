@@ -2,7 +2,7 @@
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
     <div
         v-if="loader === true"
-        class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">
+        class="fixed w-100 h-100 opacity-80 bg-green-800 inset-0 z-50 flex items-center justify-center">
       <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
            viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -11,77 +11,21 @@
       </svg>
     </div>
     <div class="container">
-      <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label for="wallet" class="block text-sm font-medium text-gray-700"
-            >Тикер {{ ticker }}</label
-            >
-            <div class="mt-1 relative rounded-md shadow-md">
-              <input
-                  v-model="ticker"
-                  @keydown.enter="add"
-                  @input="findSimilarCryptoCurrency(ticker)"
-                  type="text"
-                  name="wallet"
-                  id="wallet"
-                  class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-                  placeholder="Например DOGE"
-              />
-            </div>
-            <div class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap "
-            >
-            <span
-                v-for="currency in listSimilarTickers"
-                v-on:click="chooseCurrency(currency)"
-                :key="currency"
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
-              {{ currency }}
-            </span>
-            </div>
-            <div v-if="!isCurrentTicker"
-                 class="text-sm text-red-600">
-              Введенный тикер отсутсвует в базе данных
-            </div>
+      <add-ticker
+          @add-ticker="add"
+          @find-similar-ticker="findSimilarTicker"
+          :disabled="tooManyTickersAdded"
+          :isCurrentTicker="isCurrentTicker"
+          :listSimilarTickers="listSimilarTickers"
+          :isAddedTicker="isAddedTicker"
 
-            <div
-                v-if="isAddedTicker"
-                class="text-sm text-red-600">
-              Такой тикер уже добавлен
-            </div>
-
-          </div>
-        </div>
-        <button
-            v-on:click="add"
-            :disabled="disabledButton"
-            type="button"
-            class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          <!-- Heroicon name: solid/mail -->
-          <svg
-              class="-ml-0.5 mr-2 h-6 w-6"
-              xmlns="http://www.w3.org/2000/svg"
-              width="30"
-              height="30"
-              viewBox="0 0 24 24"
-              fill="#ffffff"
-          >
-            <path
-                d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            ></path>
-          </svg>
-          Добавить
-        </button>
-      </section>
-
+      />
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4"/>
         <div>
           Фильтрация:
           <input
               v-model="filter"
-
               class="border-x-0 border-t-0 focus:outline-none"
           />
           <button
@@ -109,7 +53,7 @@
               :class="{
                 'border-2': selectedTicker === t
               }"
-              class="bg-white overflow-hidden shadow rounded-lg border-purple-800  border-solid cursor-pointer"
+              class="bg-white overflow-hidden shadow rounded-lg border-green-800  border-solid cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt
@@ -155,12 +99,15 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
           {{ selectedTicker.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div
+            class="flex items-end border-gray-600 border-b border-l h-64"
+            ref="graph">
           <div
               v-for="(bar, idx) in normalizedGraph"
               :key="idx"
               :style="{height: `${bar}%`}"
-              class="bg-purple-800 border w-10"
+              class="bg-green-800 border w-5"
+              ref="graphElement"
           ></div>
         </div>
         <button
@@ -195,9 +142,15 @@
 
 <script>
 import {unsubscribeFromTicker, subscribeToTicker} from "@/api";
+import AddTicker from './components/AddTicker'
 
 export default {
   name: 'App',
+
+  components: {
+    AddTicker
+  },
+
   data() {
     return {
       ticker: '',
@@ -207,14 +160,15 @@ export default {
       selectedTicker: null,
 
       graph: [],
+      maxGraphElements: 1,
       page: 1,
-      // hasNextPage: true,
+      widthGraphElement: 1,
+
       listCryptoCurrency: {},
       listSimilarTickers: [],
       isAddedTicker: false,
       isCurrentTicker: true,
       loader: true,
-      // intervalIds: [],
     }
   },
   computed: {
@@ -242,27 +196,34 @@ export default {
       }
       return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
     },
-    disabledButton() {
-      return this.ticker === '' || !this.isCurrentTicker
+    // disabledButton(ticker) {
+    //   return ticker === '' || !this.isCurrentTicker
+    // },
+    tooManyTickersAdded() {
+      return this.ticker.length > 30
     },
     hasCurrentTicker() {
       return this.listSimilarTickers.includes(this.ticker.name)
-    }
-
-    // pageStateOptions() {
-    //   return {
-    //     filter: this.filter,
-    //     page: this.page
-    //   }
-    // }
+    },
   },
   methods: {
+    calculateWidthGraphElement() {
+      console.log(this.widthGraphElement)
+      this.widthGraphElement = this.$refs.graphElement[0].clientWidth
+    },
+    calculateMaxGraphElements() {
+      if (!this.$refs.graph) return
+      this.maxGraphElements = this.$refs.graph.clientWidth / this.widthGraphElement
+    },
     updateTicker(tickerName, price) {
       this.tickers
           .filter(t => t.name === tickerName)
           .forEach(t => {
             if (t === this.selectedTicker) {
               this.graph.push(price)
+              this.$nextTick().then(this.calculateWidthGraphElement)
+              const startIndex = Math.max(0, this.graph.length - this.maxGraphElements);
+              this.graph = this.graph.slice(startIndex);
             }
             if (price === null) {
               t.price = '-'
@@ -280,9 +241,9 @@ export default {
       }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
-    async add() {
+    add(ticker) {
       const currentTicker = {
-        name: this.ticker,
+        name: ticker,
         price: "-"
       }
       if (this.tickers.find(t => t.name === currentTicker.name)) {
@@ -295,16 +256,11 @@ export default {
       subscribeToTicker(currentTicker.name, (newPrice) => {
         this.updateTicker(currentTicker.name, newPrice)
       })
-
-      this.ticker = ''
       this.filter = ''
       this.listSimilarTickers = []
       this.isAddedTicker = false
 
 
-    },
-    chooseCurrency(currency) {
-      this.ticker = currency
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove)
@@ -317,7 +273,7 @@ export default {
     select(t) {
       this.selectedTicker = t
     },
-    findSimilarCryptoCurrency(ticker) {
+    findSimilarTicker(ticker) {
       this.isCurrentTicker = true
       this.isAddedTicker = false
       const currencies = Object.keys(this.listCryptoCurrency);
@@ -332,6 +288,7 @@ export default {
   watch: {
     selectedTicker() {
       this.graph = []
+      this.$nextTick().then(this.calculateMaxGraphElements)
     },
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
@@ -376,7 +333,13 @@ export default {
     const data = await res.json()
     this.listCryptoCurrency = data.Data
     this.loader = false
-  }
+  },
+  mounted() {
+    window.addEventListener('resize', this.calculateMaxGraphElements)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.calculateMaxGraphElements)
+  },
 }
 
 </script>
