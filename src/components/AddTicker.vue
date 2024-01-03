@@ -74,7 +74,8 @@ export default {
     }
   },
   emits: {
-    "add-ticker": value => typeof value === 'string'
+    "add-ticker": value => typeof value === 'string',
+    "find-similar-ticker": value => typeof value === "string"
   },
 
 
@@ -84,9 +85,9 @@ export default {
     }
   },
   methods: {
-    add() {
-      this.$emit('add-ticker', this.ticker)
-      if (this.isAddedTicker === true || !this.isCurrentTicker) {
+    async add() {
+      await this.$emit('add-ticker', this.ticker)
+      if (this.isAddedTicker === true || this.isCurrentTicker === false) {
         return
       } else this.ticker = ''
     },

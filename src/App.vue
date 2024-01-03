@@ -187,7 +187,7 @@ export default {
     hasNextPage() {
       return this.filteredTickers.length > this.endIndex
     },
-    normalizedGraph() {
+   normalizedGraph() {
       const maxValue = Math.max(...this.graph)
       const minValue = Math.min(...this.graph)
 
@@ -196,9 +196,6 @@ export default {
       }
       return this.graph.map(p => 5 + ((p - minValue) * 95) / (maxValue - minValue))
     },
-    // disabledButton(ticker) {
-    //   return ticker === '' || !this.isCurrentTicker
-    // },
     tooManyTickersAdded() {
       return this.ticker.length > 30
     },
@@ -208,7 +205,6 @@ export default {
   },
   methods: {
     calculateWidthGraphElement() {
-      console.log(this.widthGraphElement)
       this.widthGraphElement = this.$refs.graphElement[0].clientWidth
     },
     calculateMaxGraphElements() {
@@ -221,7 +217,11 @@ export default {
           .forEach(t => {
             if (t === this.selectedTicker) {
               this.graph.push(price)
-              this.$nextTick().then(this.calculateWidthGraphElement)
+              if (this.graph.length === 1) {
+                this.$nextTick()
+                    .then(this.calculateWidthGraphElement)
+                    .then(this.calculateMaxGraphElements)
+              }
               const startIndex = Math.max(0, this.graph.length - this.maxGraphElements);
               this.graph = this.graph.slice(startIndex);
             }
@@ -288,7 +288,6 @@ export default {
   watch: {
     selectedTicker() {
       this.graph = []
-      this.$nextTick().then(this.calculateMaxGraphElements)
     },
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
@@ -335,7 +334,7 @@ export default {
     this.loader = false
   },
   mounted() {
-    window.addEventListener('resize', this.calculateMaxGraphElements)
+      window.addEventListener('resize', this.calculateMaxGraphElements);
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.calculateMaxGraphElements)
