@@ -22,7 +22,12 @@ export const subscribeToTicker = (ticker, cb) => {
 export const unsubscribeFromTicker = ticker => {
     tickersHandlers.delete(ticker)
     worker.port.postMessage({ticker, action: "unsubscribe"})
+}
 
+export const getListAvailableCryptoCurrencies = async () => {
+  const res = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
+    const data = await res.json()
+    return data.Data
 }
 
 
