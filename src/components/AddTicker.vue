@@ -41,7 +41,7 @@
       </div>
     </div>
     <add-button
-        v-on:click="add"
+        @click="add"
         :disabled="disabled || ticker === ''"/>
   </section>
 </template>
