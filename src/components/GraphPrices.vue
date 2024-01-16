@@ -4,7 +4,7 @@
       {{ selectedTicker.name }} - USD
     </h3>
     <div
-        class="flex items-end border-gray-600 border-b border-l h-64"
+        class="flex items-end border-gray-600 border-b border-l h-64 "
         ref="graph">
       <div
           v-for="(bar, idx) in normalizedGraph"
@@ -17,7 +17,7 @@
     <button
         @click="closeGraph"
         type="button"
-        class="absolute top-0 right-0"
+        class="absolute top-0 right-0 z-0"
     >
       <svg
           xmlns="http://www.w3.org/2000/svg"

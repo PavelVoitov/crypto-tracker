@@ -9,7 +9,6 @@
           :isCurrentTicker="isCurrentTicker"
           :listSimilarTickers="listSimilarTickers"
           :isAddedTicker="isAddedTicker"
-
       />
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-600 my-4"/>
@@ -33,7 +32,6 @@
           >
             <img src="./assets/images/arrow-right.png" alt="arrow to right" class="w-3 h-3">
           </button>
-
         </div>
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
