@@ -11,7 +11,7 @@
         <strong><slot></slot></strong>
         <span>?</span>
       </p>
-      <button class="bg-green-800 rounded-md">Подтвердить</button>
+      <button class="relative left-2 bg-green-800 rounded-md">Подтвердить</button>
     </div>
   </div>
 </template>
