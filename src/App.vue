@@ -60,7 +60,11 @@
       :tickerForDeleting="tickerForDeleting"
       @close-modal="handleModal"
       @confirm-delete="handleDelete"
-  />
+  >
+    <template v-slot:tickerName="slotProps">
+        {{slotProps.ticker}}
+    </template>
+  </confirmation-modal>
 </template>
 
 <script>
@@ -123,9 +127,6 @@ export default {
     tooManyTickersAdded() {
       return this.ticker.length > 30
     },
-    // hasCurrentTicker() {
-    //   return this.listSimilarTickers.includes(this.ticker.name)
-    // },
   },
   methods: {
     updateTicker(tickerName, price) {
@@ -195,11 +196,6 @@ export default {
       this.listSimilarTickers = filteredCurrencies.slice(0, 4)
     },
     handleModal(action, ticker = null) {
-      if (action === true) {
-        document.body.classList.add('modal-open');
-      } else {
-        document.body.classList.remove('modal-open');
-      }
       this.isOpenModal = action
       this.tickerForDeleting = ticker
     }
@@ -250,9 +246,5 @@ export default {
     this.loader = false
   },
 }
-
 </script>
 
-<style lang="css">
-@import './assets/style.css';
-</style>

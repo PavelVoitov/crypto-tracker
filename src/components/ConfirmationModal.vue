@@ -1,16 +1,18 @@
 <template>
   <div
-      class="absolute z-10 top-0 left-0 w-full h-full bg-red-900 bg-opacity-70 flex items-center justify-center"
+      class="fixed z-10 top-0 left-0 w-full h-full bg-red-900 bg-opacity-70 flex items-center justify-center"
       @click="closeModal"
   >
     <div
         class="bg-white z-20 p-4 border-4 border-green-800 rounded-md"
-        @click="handleInnerClick"
+        @click.stop
     >
       <button class="bg-green-500 rounded-md px-1 float-right text-lg font-bold cursor-pointer hover:bg-green-700" @click="closeModal">&times;</button>
       <p>
         Вы действительно хотите удалить тикер
-        <strong>{{tickerForDeleting.name}}</strong>
+        <strong>
+          <slot name="tickerName" :ticker="tickerForDeleting.name"></slot>
+        </strong>
         <span>?</span>
       </p>
       <button
@@ -26,16 +28,13 @@
 <script>
 export default {
   props: {
-    // isOpen: {
-    //   type: Boolean,
-    //   require: true
-    // },
     tickerForDeleting: {
       type: Object,
       require: true
     }
   },
   emits: {
+    "confirm-delete": value => typeof value === "object",
     "close-modal": value => typeof value === "boolean"
   },
   methods: {
@@ -45,10 +44,17 @@ export default {
     closeModal() {
       this.$emit("close-modal", false);
     },
-    handleInnerClick(event) {
-      // Предотвращаем всплытие события
-      event.stopPropagation();
-    },
+    handleKeyDown(e) {
+      if (e.key === "Escape") {
+        this.closeModal()
+      }
+    }
   },
+  mounted() {
+    document.addEventListener('keydown', this.handleKeyDown)
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.handleKeyDown)
+  }
 };
 </script>

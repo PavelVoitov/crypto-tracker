@@ -37,17 +37,6 @@
       </svg>
       Удалить
     </button>
-<!--    <confirmation-modal-->
-<!--        v-if="isOpen"-->
-<!--        @close-modal="handleModal"-->
-<!--        @confirm-delete="deleteTicker(ticker)"-->
-<!--        :ticker="ticker"-->
-<!--    >-->
-<!--      <template #tickerName>-->
-<!--        {{ticker.name}}-->
-<!--      </template>-->
-
-<!--    </confirmation-modal>-->
   </div>
 </template>
 
@@ -62,18 +51,15 @@ export default {
     paginatedTickers: {
       type: Array,
       required: false,
-      default: () => []
     },
     selectedTicker: {
       type: [Object, null],
       required: false,
-      default: () => {
-      }
     }
   },
   emits: {
     "select-ticker": value => typeof value === 'object',
-    "delete-ticker": value => typeof value === "object"
+    "open-modal": (action, ticker) => typeof action === "boolean" && typeof ticker === "object",
   },
   methods: {
     openModal(action, ticker) {
@@ -81,9 +67,6 @@ export default {
     },
     selectTicker(ticker) {
       this.$emit('select-ticker', ticker)
-    },
-    deleteTicker(ticker) {
-      this.$emit('delete-ticker', ticker)
     },
     formatPrice(price) {
       if (price === '-') {
