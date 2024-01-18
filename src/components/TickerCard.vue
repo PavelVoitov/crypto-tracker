@@ -4,7 +4,7 @@
       :key="ticker.name"
       @click="selectTicker(ticker)"
       :class="{'border-2': selectedTicker === ticker}"
-      class="bg-white overflow-hidden shadow rounded-lg border-green-800  border-solid cursor-pointer"
+      class="bg-white overflow-hidden shadow rounded-lg border-green-800 border-solid cursor-pointer"
   >
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt
@@ -19,7 +19,7 @@
     </div>
     <div class="w-full border-t border-gray-200"></div>
     <button
-        @click.stop="handleModal(true)"
+        @click.stop="openModal(true, ticker)"
         class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
     >
       <svg
@@ -37,23 +37,22 @@
       </svg>
       Удалить
     </button>
-    <confirmation-modal
-        :isOpen="isOpen"
-        @close-modal="handleModal"
-    >
-      {{selectedTicker.name}}
-    </confirmation-modal>
+<!--    <confirmation-modal-->
+<!--        v-if="isOpen"-->
+<!--        @close-modal="handleModal"-->
+<!--        @confirm-delete="deleteTicker(ticker)"-->
+<!--        :ticker="ticker"-->
+<!--    >-->
+<!--      <template #tickerName>-->
+<!--        {{ticker.name}}-->
+<!--      </template>-->
+
+<!--    </confirmation-modal>-->
   </div>
 </template>
 
 <script>
-import ConfirmationModal from "@/components/ConfirmationModal.vue";
-
-
 export default {
-  components: {
-    ConfirmationModal
-  },
   data() {
     return {
       isOpen: false
@@ -77,8 +76,8 @@ export default {
     "delete-ticker": value => typeof value === "object"
   },
   methods: {
-    handleModal(action) {
-      this.isOpen = action
+    openModal(action, ticker) {
+      this.$emit('open-modal', action, ticker)
     },
     selectTicker(ticker) {
       this.$emit('select-ticker', ticker)

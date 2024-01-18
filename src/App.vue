@@ -1,5 +1,8 @@
 <template>
-  <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+  <div
+      class="container mx-auto flex flex-col items-center bg-gray-100 p-4"
+      :class="{'overflow-hidden': isOpenModal}"
+  >
     <app-loader v-if="loader === true"/>
     <div class="container">
       <add-ticker
@@ -39,7 +42,7 @@
               :paginatedTickers = paginatedTickers
               :selectedTicker = selectedTicker
               @select-ticker = "select"
-              @delete-ticker = "handleDelete"
+              @open-modal = "handleModal"
           />
         </dl>
         <hr class="w-full border-t border-gray-600 my-4"/>
@@ -52,6 +55,12 @@
       />
     </div>
   </div>
+  <confirmation-modal
+      v-if="isOpenModal"
+      :tickerForDeleting="tickerForDeleting"
+      @close-modal="handleModal"
+      @confirm-delete="handleDelete"
+  />
 </template>
 
 <script>
@@ -60,11 +69,13 @@ import AddTicker from '@/components/AddTicker'
 import GraphPrices from '@/components/GraphPrices'
 import TickerCard from "@/components/TickerCard";
 import AppLoader from "@/components/AppLoader";
+import ConfirmationModal from "@/components/ConfirmationModal.vue";
 
 export default {
   name: 'App',
 
   components: {
+    ConfirmationModal,
     AppLoader,
     TickerCard,
     AddTicker,
@@ -88,6 +99,9 @@ export default {
       isAddedTicker: false,
       isCurrentTicker: true,
       loader: true,
+
+      isOpenModal: false,
+      tickerForDeleting: null
     }
   },
   computed: {
@@ -155,8 +169,6 @@ export default {
       this.filter = ''
       this.listSimilarTickers = []
       this.isAddedTicker = false
-
-
     },
     handleDelete(tickerToRemove) {
       this.tickers = this.tickers.filter(t => t !== tickerToRemove)
@@ -165,6 +177,8 @@ export default {
         this.selectedTicker = null
       }
       unsubscribeFromTicker(tickerToRemove.name)
+      this.tickerForDeleting = null
+      this.isOpenModal = false
     },
     select(t) {
       this.selectedTicker = t
@@ -179,6 +193,15 @@ export default {
 
       // get 4 currencies from the filtered list
       this.listSimilarTickers = filteredCurrencies.slice(0, 4)
+    },
+    handleModal(action, ticker = null) {
+      if (action === true) {
+        document.body.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+      }
+      this.isOpenModal = action
+      this.tickerForDeleting = ticker
     }
   },
   watch: {
@@ -230,5 +253,6 @@ export default {
 
 </script>
 
-<style>
+<style lang="css">
+@import './assets/style.css';
 </style>
