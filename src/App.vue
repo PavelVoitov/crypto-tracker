@@ -73,13 +73,13 @@ import AddTicker from '@/components/AddTicker'
 import GraphPrices from '@/components/GraphPrices'
 import TickerCard from "@/components/TickerCard";
 import AppLoader from "@/components/AppLoader";
-import ConfirmationModal from "@/components/ConfirmationModal.vue";
+// import ConfirmationModal from "@/components/ConfirmationModal.vue";
 
 export default {
   name: 'App',
 
   components: {
-    ConfirmationModal,
+    // ConfirmationModal,
     AppLoader,
     TickerCard,
     AddTicker,
