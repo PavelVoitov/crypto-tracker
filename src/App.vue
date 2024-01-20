@@ -55,16 +55,16 @@
       />
     </div>
   </div>
-  <confirmation-modal
-      v-if="isOpenModal"
-      :tickerForDeleting="tickerForDeleting"
-      @close-modal="handleModal"
-      @confirm-delete="handleDelete"
-  >
-    <template v-slot:tickerName="slotProps">
-        {{slotProps.ticker}}
-    </template>
-  </confirmation-modal>
+<!--  <confirmation-modal-->
+<!--      v-if="isOpenModal"-->
+<!--      :tickerForDeleting="tickerForDeleting"-->
+<!--      @close-modal="handleModal"-->
+<!--      @confirm-delete="handleDelete"-->
+<!--  >-->
+<!--    <template v-slot:tickerName="slotProps">-->
+<!--        {{slotProps.ticker}}-->
+<!--    </template>-->
+<!--  </confirmation-modal>-->
 </template>
 
 <script>
