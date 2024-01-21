@@ -42,7 +42,7 @@
               :paginatedTickers = paginatedTickers
               :selectedTicker = selectedTicker
               @select-ticker = "select"
-              @open-modal = "handleModal"
+              @open-modal = "handleConfirmModal"
           />
         </dl>
         <hr class="w-full border-t border-gray-600 my-4"/>
@@ -65,6 +65,11 @@
 <!--        {{slotProps.ticker}}-->
 <!--    </template>-->
 <!--  </confirmation-modal>-->
+  <confirmation-modal :tickerForDeleting="tickerForDeleting" ref="confirmationModal">
+        <template v-slot:tickerName="slotProps">
+            {{slotProps.ticker}}
+        </template>
+  </confirmation-modal>>
 </template>
 
 <script>
@@ -73,13 +78,13 @@ import AddTicker from '@/components/AddTicker'
 import GraphPrices from '@/components/GraphPrices'
 import TickerCard from "@/components/TickerCard";
 import AppLoader from "@/components/AppLoader";
-// import ConfirmationModal from "@/components/ConfirmationModal.vue";
+import ConfirmationModal from "@/components/ConfirmationModal.vue";
 
 export default {
   name: 'App',
 
   components: {
-    // ConfirmationModal,
+    ConfirmationModal,
     AppLoader,
     TickerCard,
     AddTicker,
@@ -104,7 +109,7 @@ export default {
       isCurrentTicker: true,
       loader: true,
 
-      isOpenModal: false,
+      // isOpenModal: false,
       tickerForDeleting: null
     }
   },
@@ -129,6 +134,13 @@ export default {
     },
   },
   methods: {
+    async handleConfirmModal(ticker) {
+      this.tickerForDeleting = ticker
+      const modalResult = await this.$refs.confirmationModal.open()
+        if (modalResult) {
+          this.handleDelete(modalResult)
+        }
+    },
     updateTicker(tickerName, price) {
       this.tickers
           .filter(t => t.name === tickerName)
