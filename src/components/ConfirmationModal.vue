@@ -40,10 +40,6 @@ export default {
       require: true
     }
   },
-  // emits: {
-  //   "confirm-delete": value => typeof value === "object",
-  //   "close-modal": value => typeof value === "boolean"
-  // },
   methods: {
     open() {
       let resolve
@@ -63,11 +59,7 @@ export default {
     confirmDelete() {
       this.$options.currentModalController.resolve(this.tickerForDeleting)
       this.isOpen = false
-      // this.$emit("confirm-delete", this.tickerForDeleting)
     },
-    // closeModal() {
-    //   this.$emit("close-modal", false);
-    // },
     handleKeyDown(e) {
       if (e.key === "Escape") {
         this.closeModal()

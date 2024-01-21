@@ -55,17 +55,10 @@
       />
     </div>
   </div>
-<!--  <confirmation-modal-->
-<!--      v-if="isOpenModal"-->
-<!--      :tickerForDeleting="tickerForDeleting"-->
-<!--      @close-modal="handleModal"-->
-<!--      @confirm-delete="handleDelete"-->
-<!--  >-->
-<!--    <template v-slot:tickerName="slotProps">-->
-<!--        {{slotProps.ticker}}-->
-<!--    </template>-->
-<!--  </confirmation-modal>-->
-  <confirmation-modal :tickerForDeleting="tickerForDeleting" ref="confirmationModal">
+  <confirmation-modal
+      :tickerForDeleting="tickerForDeleting"
+      ref="confirmationModal"
+  >
         <template v-slot:tickerName="slotProps">
             {{slotProps.ticker}}
         </template>
@@ -109,7 +102,6 @@ export default {
       isCurrentTicker: true,
       loader: true,
 
-      // isOpenModal: false,
       tickerForDeleting: null
     }
   },
@@ -207,10 +199,6 @@ export default {
       // get 4 currencies from the filtered list
       this.listSimilarTickers = filteredCurrencies.slice(0, 4)
     },
-    handleModal(action, ticker = null) {
-      this.isOpenModal = action
-      this.tickerForDeleting = ticker
-    }
   },
   watch: {
     selectedTicker() {
