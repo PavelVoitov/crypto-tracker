@@ -1,5 +1,6 @@
 <template>
   <div
+      v-if="isOpen"
       class="fixed z-10 top-0 left-0 w-full h-full bg-red-900 bg-opacity-70 flex items-center justify-center"
       @click="closeModal"
   >
@@ -27,22 +28,37 @@
 
 <script>
 export default {
+  data() {
+    return {
+      isOpen: false
+    }
+  },
+  currentModalController: null,
   props: {
     tickerForDeleting: {
       type: Object,
       require: true
     }
   },
-  emits: {
-    "confirm-delete": value => typeof value === "object",
-    "close-modal": value => typeof value === "boolean"
-  },
   methods: {
-    confirmDelete() {
-      this.$emit("confirm-delete", this.tickerForDeleting)
+    open() {
+      let resolve
+      let reject
+      const modalPromise = new Promise((ok, fail) => {
+        resolve = ok
+        reject = fail
+      })
+      this.$options.currentModalController = {resolve, reject}
+      this.isOpen = true
+      return modalPromise
     },
     closeModal() {
-      this.$emit("close-modal", false);
+      this.$options.currentModalController.resolve(false)
+      this.isOpen = false
+    },
+    confirmDelete() {
+      this.$options.currentModalController.resolve(this.tickerForDeleting)
+      this.isOpen = false
     },
     handleKeyDown(e) {
       if (e.key === "Escape") {

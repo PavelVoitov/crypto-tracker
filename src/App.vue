@@ -1,7 +1,6 @@
 <template>
   <div
       class="container mx-auto flex flex-col items-center bg-gray-100 p-4"
-      :class="{'overflow-hidden': isOpenModal}"
   >
     <app-loader v-if="loader === true"/>
     <div class="container">
@@ -42,7 +41,7 @@
               :paginatedTickers = paginatedTickers
               :selectedTicker = selectedTicker
               @select-ticker = "select"
-              @open-modal = "handleModal"
+              @open-modal = "handleConfirmModal"
           />
         </dl>
         <hr class="w-full border-t border-gray-600 my-4"/>
@@ -56,15 +55,13 @@
     </div>
   </div>
   <confirmation-modal
-      v-if="isOpenModal"
       :tickerForDeleting="tickerForDeleting"
-      @close-modal="handleModal"
-      @confirm-delete="handleDelete"
+      ref="confirmationModal"
   >
-    <template v-slot:tickerName="slotProps">
-        {{slotProps.ticker}}
-    </template>
-  </confirmation-modal>
+        <template v-slot:tickerName="slotProps">
+            {{slotProps.ticker}}
+        </template>
+  </confirmation-modal>>
 </template>
 
 <script>
@@ -104,7 +101,6 @@ export default {
       isCurrentTicker: true,
       loader: true,
 
-      isOpenModal: false,
       tickerForDeleting: null
     }
   },
@@ -127,8 +123,21 @@ export default {
     tooManyTickersAdded() {
       return this.ticker.length > 30
     },
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page
+      }
+    }
   },
   methods: {
+    async handleConfirmModal(ticker) {
+      this.tickerForDeleting = ticker
+      const modalResult = await this.$refs.confirmationModal.open()
+        if (modalResult) {
+          this.handleDelete(modalResult)
+        }
+    },
     updateTicker(tickerName, price) {
       this.tickers
           .filter(t => t.name === tickerName)
@@ -145,12 +154,6 @@ export default {
             }
           })
       localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
-    },
-    formatPrice(price) {
-      if (price === '-') {
-        return price
-      }
-      return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
     add(ticker) {
       const currentTicker = {
@@ -179,7 +182,6 @@ export default {
       }
       unsubscribeFromTicker(tickerToRemove.name)
       this.tickerForDeleting = null
-      this.isOpenModal = false
     },
     select(t) {
       this.selectedTicker = t
@@ -195,19 +197,10 @@ export default {
       // get 4 currencies from the filtered list
       this.listSimilarTickers = filteredCurrencies.slice(0, 4)
     },
-    handleModal(action, ticker = null) {
-      this.isOpenModal = action
-      this.tickerForDeleting = ticker
-    }
   },
   watch: {
     selectedTicker() {
       this.graph = []
-    },
-    paginatedTickers() {
-      if (this.paginatedTickers.length === 0 && this.page > 1) {
-        this.page -= 1
-      }
     },
     filter() {
       this.page = 1
