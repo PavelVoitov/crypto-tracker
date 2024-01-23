@@ -1,7 +1,6 @@
 <template>
   <div
       class="container mx-auto flex flex-col items-center bg-gray-100 p-4"
-      :class="{'overflow-hidden': isOpenModal}"
   >
     <app-loader v-if="loader === true"/>
     <div class="container">
@@ -124,6 +123,12 @@ export default {
     tooManyTickersAdded() {
       return this.ticker.length > 30
     },
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page
+      }
+    }
   },
   methods: {
     async handleConfirmModal(ticker) {
@@ -149,12 +154,6 @@ export default {
             }
           })
       localStorage.setItem('crypto-list', JSON.stringify(this.tickers))
-    },
-    formatPrice(price) {
-      if (price === '-') {
-        return price
-      }
-      return price > 1 ? price.toFixed(2) : price.toPrecision(2)
     },
     add(ticker) {
       const currentTicker = {
@@ -183,7 +182,6 @@ export default {
       }
       unsubscribeFromTicker(tickerToRemove.name)
       this.tickerForDeleting = null
-      this.isOpenModal = false
     },
     select(t) {
       this.selectedTicker = t
@@ -203,11 +201,6 @@ export default {
   watch: {
     selectedTicker() {
       this.graph = []
-    },
-    paginatedTickers() {
-      if (this.paginatedTickers.length === 0 && this.page > 1) {
-        this.page -= 1
-      }
     },
     filter() {
       this.page = 1
