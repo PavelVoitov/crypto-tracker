@@ -44,7 +44,7 @@ Open the application in your browser.
 
 The app is deployed on gh-pages, and you can access it [here](https://pavelvoitov.github.io/crypto-tracker/).
 
-**Contributing**
+## Contributing
 If you find a bug or have a suggestion for improving the application, feel free to create a new pull request. Your contributions are welcome!
 
 ## Contact Information
