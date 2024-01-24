@@ -35,7 +35,7 @@
             clip-rule="evenodd"
         ></path>
       </svg>
-      Удалить
+      Delete
     </button>
   </div>
 </template>
