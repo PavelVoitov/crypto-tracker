@@ -22,16 +22,18 @@ The application is limited to managing up to 30 cryptocurrencies for performance
 Vue.js - a framework for building user interfaces.
 Tailwind CSS - a CSS framework for rapid and straightforward styling.
 ## Running the Application
-1. **Install dependencies:**
+1. **Clone the Repository:**
+```bash
+git clone https://github.com/PavelVoitov/crypto-tracker.git
+```
+2. **Install dependencies:**
 
 ```bash
-Copy code
 npm install
 ```
-2. **Start the local server:**
+3. **Start the local server:**
 
 ```bash
-Copy code
 npm run serve
 ```
 Open the application in your browser.
