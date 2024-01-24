@@ -8,9 +8,11 @@ The application provides the ability to track real-time cryptocurrency rates. Us
 1. **Add Cryptocurrencies**
 
 Users can add a new cryptocurrency by specifying its name.
+
 2. **Name Filtering**
 
 There is the option to filter cryptocurrencies by their name for convenient searching.
+
 3. **Rate Change Chart**
 
 Users can view a real-time chart of the selected cryptocurrency's rate.
