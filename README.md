@@ -20,9 +20,19 @@ Users can view a real-time chart of the selected cryptocurrency's rate.
 4. **Cryptocurrency Limit**
 
 The application is limited to managing up to 30 cryptocurrencies for performance reasons.
+
+5. **Real-Time Updates with WebSocket**
+
+Utilizes WebSocket for real-time updates of cryptocurrency rates.
+
+6. **SharedWorker for Data Synchronization**
+
+Implements SharedWorker to synchronize cryptocurrency information across multiple browser windows.
 ## Technologies
-Vue.js - a framework for building user interfaces.
-Tailwind CSS - a CSS framework for rapid and straightforward styling.
++ Vue.js - a framework for building user interfaces.
++ Tailwind CSS - a CSS framework for rapid and straightforward styling.
++ WebSocket - for real-time updates of cryptocurrency rates.
++ SharedWorker - for synchronization of cryptocurrency information across multiple browser windows.
 ## Running the Application
 1. **Clone the Repository:**
 ```bash
